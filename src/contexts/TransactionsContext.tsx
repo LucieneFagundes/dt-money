@@ -34,7 +34,7 @@ export const TransactionsContext = createContext<TransactionContextType>(
 export function TransactionsProvider({ children }: TransactionsProviderProps) {
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
 
-  async function fetchTransactions(query?: string) {
+  const fetchTransactions = React.useCallback(async (query?: string) => {
     const { data } = await api.get("/transactions");
 
     const filteredTransactions = data
@@ -53,23 +53,28 @@ export function TransactionsProvider({ children }: TransactionsProviderProps) {
       });
 
     setTransactions(filteredTransactions);
-  }
+  }, []);
 
-  async function createTransaction(data: CreateTransactionInput) {
-    const { description, price, category, type } = data;
+  const createTransaction = React.useCallback(
+    async (data: CreateTransactionInput) => {
+      const { description, price, category, type } = data;
 
-    await api.post("/transactions", {
-      description,
-      price,
-      category,
-      type,
-      createdAt: new Date().toISOString(),
-    });
-  }
+      const response = await api.post("/transactions", {
+        description,
+        price,
+        category,
+        type,
+        createdAt: new Date().toISOString(),
+      });
+
+      setTransactions((state) => [response.data, ...state]);
+    },
+    []
+  );
 
   React.useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [fetchTransactions]);
   return (
     <TransactionsContext.Provider
       value={{ transactions, fetchTransactions, createTransaction }}
